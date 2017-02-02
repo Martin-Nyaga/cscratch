@@ -126,13 +126,10 @@ void sc_print_top(Stack* stack_ptr){
 	}
 
 	// Value at top of the stack
-	unsigned int top = stack_ptr->contents[stack_ptr->top];
-	
-	// Print thr top item in the stack
+	unsigned int top = stack_pop(stack_ptr);
 	printf("%d\n", top);
 	
 	// Pop top item from srack
-	stack_pop(stack_ptr);
 } 
 
 // Duplicate the top item in the stack
