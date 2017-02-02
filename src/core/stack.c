@@ -73,3 +73,7 @@ unsigned int stack_pop(Stack* stack_ptr){
 void stack_destroy(Stack* stack_ptr){
 	// TODO:
 }
+
+void stack_empty(Stack* stack_ptr){
+	// TODO:
+}

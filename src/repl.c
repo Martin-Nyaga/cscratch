@@ -9,12 +9,12 @@
 //  This should be done in IFDEF blocks this 
 #include <editline/readline.h>
 
-#include "stack.h"
-#include "scratch.h"
+#include "core/stack.h"
+#include "core/scratch.h"
 
 // Program Stack
 // 256 integers => 1024bytes => 1KB stack size
-#define PROG_STACK_SIZE 256;
+#define PROG_STACK_SIZE 256
 static Stack PROG_STACK;
 
 int main(int argc, char** argv){

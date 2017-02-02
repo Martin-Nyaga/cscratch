@@ -14,5 +14,6 @@ void stack_push(Stack*, unsigned int);
 unsigned int stack_pop(Stack*);
 void stack_print(Stack*);
 void stack_destroy(Stack*);
+void stack_empty(Stack*);
 
 #endif
