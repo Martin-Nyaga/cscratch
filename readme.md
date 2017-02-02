@@ -9,12 +9,12 @@ originally in javascript.
 
 # Usage
 
-Clone this repo. Run `make` to compile the repl.
+Clone this repo. Run `make` to compile the REPL.
 
-**Note:** At the moment, the repl only compiles on mac. I'm still working on it,
+**Note:** At the moment, the REPL only compiles on mac. I'm still working on it,
 and I will make it compile on linux as well when I am done with it.
 
-You can then  run the repl by typing `repl`.
+You can then  run the REPL by typing `repl`.
 
 ## Language Features
 
