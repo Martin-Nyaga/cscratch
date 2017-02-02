@@ -13,7 +13,6 @@
 
 // Take a stack, and an input & Interprete the result
 void sc_interprete(Stack* stack_ptr, char* input){
-	// TODO: Need to read input word by word
 	int length = strlen(input);
 	int i, wc = 0;
 
