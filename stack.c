@@ -29,10 +29,13 @@ int stack_is_full(Stack* stack_ptr){
 }
 
 // Push a number to the top of the stack
-// TODO: Error if stack is full
+// TODO: Error if stack is full. Right now it
+//  just throws away the values if the stack is full
 void stack_push(Stack* stack_ptr, unsigned int value){
-	stack_ptr->top++;
-	stack_ptr->contents[stack_ptr->top] = value;
+	if (!stack_is_full(stack_ptr)){
+		stack_ptr->top++;
+		stack_ptr->contents[stack_ptr->top] = value;
+	}
 }
 
 // Print the stack

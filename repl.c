@@ -1,17 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// TODO: Won't compile on Linux, 
+// TODO: This won't compile on linux
+//  or windows as it is. Would need to
 //  need to include editline/history.h
 //  on linux, and replancement functions
 //  for windows for add_history and readline
+//  This should be done in IFDEF blocks this 
 #include <editline/readline.h>
 
 #include "stack.h"
 #include "scratch.h"
 
 // Program Stack
-#define PROG_STACK_SIZE 2048
+// 256 integers => 1024bytes => 1KB stack size
+#define PROG_STACK_SIZE 256;
 static Stack PROG_STACK;
 
 int main(int argc, char** argv){
