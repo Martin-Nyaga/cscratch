@@ -39,9 +39,6 @@ void sc_interprete(Stack* stack_ptr, char* input){
 			}
 		}
 		
-		// Manually terminate string
-		word_buffer[wc + 1] = '\0';
-		
 		// Call the function associated with a word
 		sc_call_func(stack_ptr, word_buffer);
 		
