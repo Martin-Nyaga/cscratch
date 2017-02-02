@@ -19,7 +19,8 @@ void sc_interprete(Stack* stack_ptr, char* input){
 	// Word buffer of max word length
 	char* word_buffer = (char*) malloc(MAX_WORD_LENGTH * sizeof(char));
 	
-	// Fill the word_buffer with spaces to remove any data that may
+	// Clear the word_buffer to remove any pre-existing
+	// junk data that may
 	// interfere with interpretation
 	clear_char_buffer(word_buffer, MAX_WORD_LENGTH);
 
