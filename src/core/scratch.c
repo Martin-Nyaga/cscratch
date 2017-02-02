@@ -53,12 +53,7 @@ void sc_interprete(Stack* stack_ptr, char* input){
 
 void sc_call_func(Stack* stack_ptr, char* word){
 	if(string_is_number(word)){
-		// TODO: Need to handle the case of integer
-		// 	overflow. Right now this can only accept
-		//  int digits. Also, what about Negative numbers?
-		//  Propose to not support them.
-
-		// FIXME: If blank is entered, it adds a 0 to the stack
+		// FIXME: If Space is entered, it adds a 0 to the stack
 		stack_push(stack_ptr, (unsigned int) atoi(word));
 		return;
 	}
