@@ -72,7 +72,7 @@ cscratch> dropstack print
 == Error: This command requres at least 1 item on the stack
 ```
 
-### Coming Soon: Simple Math
+### Simple Math
 
 The scratch standard library has the simple arithmetic operators `+`, `-`, `*`, `&` and `sqrt`.
 These operate on the top 2 items in the stack (with the exception of `sqrt` which operates on

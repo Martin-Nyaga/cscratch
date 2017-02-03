@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 #include "stack.h"
 #include "scratch.h"
@@ -99,6 +100,31 @@ void sc_call_func(Stack* stack_ptr, char* word){
 		return;
 	}
 
+	if(strcasecmp(word, "+") == 0){
+		sc_add(stack_ptr);
+		return;
+	}
+
+	if(strcasecmp(word, "-") == 0){
+		sc_subtract(stack_ptr);
+		return;
+	}
+
+	if(strcasecmp(word, "*") == 0){
+		sc_multiply(stack_ptr);
+		return;
+	}
+
+	if(strcasecmp(word, "/") == 0){
+		sc_divide(stack_ptr);
+		return;
+	}
+
+	if(strcasecmp(word, "SQRT") == 0){
+		sc_sqrt(stack_ptr);
+		return;
+	}
+
 	// Unknown word
 	printf("Unknown word %s\n", word);
 }
@@ -148,10 +174,10 @@ void sc_dup_top(Stack* stack_ptr){
 
 void sc_swap(Stack* stack_ptr){
 	if(stack_ptr->top < 1){
-		printf("Requires at least 2 items on the stack");
+		printf("Requires at least 2 items on the stack\n");
 		return;
 	}
-
+	
 	// Pick top & second and swap them
 	unsigned int top = stack_ptr->contents[stack_ptr->top];
 	unsigned int second = stack_ptr->contents[stack_ptr->top - 1];
@@ -182,3 +208,67 @@ void clear_char_buffer(char* buffer, int len){
 		buffer[i] = '\0';
 	}
 }
+
+void sc_add(Stack* stack_ptr){
+	if(stack_ptr->top < 1){
+		printf("Requires at least 2 items on the stack\n");
+		return;
+	}
+
+	unsigned int a = stack_pop(stack_ptr);
+	unsigned int b = stack_pop(stack_ptr);
+
+	unsigned int sum = a + b;
+	stack_push(stack_ptr, sum);
+}
+
+void sc_subtract(Stack* stack_ptr){
+	if(stack_ptr->top < 1){
+		printf("Requires at least 2 items on the stack\n");
+		return;
+	}
+
+	unsigned int a = stack_pop(stack_ptr);
+	unsigned int b = stack_pop(stack_ptr);
+
+	unsigned int sum = a - b;
+	stack_push(stack_ptr, sum);
+}
+
+void sc_multiply(Stack* stack_ptr){
+	if(stack_ptr->top < 1){
+		printf("Requires at least 2 items on the stack\n");
+		return;
+	}
+
+	unsigned int a = stack_pop(stack_ptr);
+	unsigned int b = stack_pop(stack_ptr);
+
+	unsigned int sum = a * b;
+	stack_push(stack_ptr, sum);
+}
+
+void sc_divide(Stack* stack_ptr){
+	if(stack_ptr->top < 1){
+		printf("Requires at least 2 items on the stack\n");
+		return;
+	}
+
+	unsigned int a = stack_pop(stack_ptr);
+	unsigned int b = stack_pop(stack_ptr);
+
+	unsigned int sum = a / b;
+	stack_push(stack_ptr, sum);
+}
+
+void sc_sqrt(Stack* stack_ptr){
+	if(stack_is_empty(stack_ptr)){
+		printf("Stack is empty");
+		return;
+	}
+
+	unsigned int a = stack_pop(stack_ptr);
+	unsigned int s = sqrt(a);
+	stack_push(stack_ptr, s);
+}
+
