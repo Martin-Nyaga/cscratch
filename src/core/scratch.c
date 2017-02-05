@@ -154,8 +154,6 @@ void sc_print_top(Stack* stack_ptr){
 	// Value at top of the stack
 	unsigned int top = stack_pop(stack_ptr);
 	printf("%d\n", top);
-	
-	// Pop top item from srack
 } 
 
 // Duplicate the top item in the stack
@@ -177,7 +175,7 @@ void sc_swap(Stack* stack_ptr){
 		printf("Requires at least 2 items on the stack\n");
 		return;
 	}
-	
+
 	// Pick top & second and swap them
 	unsigned int top = stack_ptr->contents[stack_ptr->top];
 	unsigned int second = stack_ptr->contents[stack_ptr->top - 1];
