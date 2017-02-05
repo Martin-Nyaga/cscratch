@@ -9,17 +9,12 @@
 //  This should be done in IFDEF blocks this 
 #include <editline/readline.h>
 
-#include "core/stack.h"
 #include "core/scratch.h"
 
-// Program Stack
-// 256 integers => 1024bytes => 1KB stack size
-#define PROG_STACK_SIZE 256
-static Stack PROG_STACK;
-
 int main(int argc, char** argv){
-	// Initialize the program stack
-	stack_init(&PROG_STACK, PROG_STACK_SIZE);
+	// Initialize with a stack size of 256 integers
+	// => 1024 bytes => 1kb
+	sc_init(256);
 
 	printf("CScratch 0.0.0.1\n");
 	printf("Press Ctrl+C to exit\n\n");
@@ -32,7 +27,7 @@ int main(int argc, char** argv){
 		add_history(input);
 		
 		// Interprete the input using Scratch
-		sc_interprete(&PROG_STACK, input);
+		sc_interprete(input);
 		
 		// Free input memory
 		free(input);

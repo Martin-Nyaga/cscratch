@@ -1,30 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "hashmap.h"
 
-int main(){
-	ScHashmap hashmap;
-
-	sc_hashmap_init(&hashmap, 100);
-
-	sc_hashmap_store(&hashmap, "Pointers", "Rock");
-	sc_hashmap_store(&hashmap, "Hello", "World");
-	sc_hashmap_store(&hashmap, "How", "Are");
-	sc_hashmap_store(&hashmap, "You", "Today");
-	sc_hashmap_store(&hashmap, "Foo", "Bar");
-	sc_hashmap_store(&hashmap, "Might", "Right");
-	sc_hashmap_store(&hashmap, "Fight", "Light");
-	sc_hashmap_store(&hashmap, "And", "Then");
-	sc_print_hash(&hashmap);
-
-	NodeH* node_ptr = sc_hashmap_lookup(&hashmap, "Pointers");
-
-	printf("%s\n", node_ptr->value);
-
-	return 0;
-}
+// Used in hashing function
+static int PRIME = 105613;
 
 void sc_hashmap_init(ScHashmap* hashmap, int num_buckets){
 	// Allocate memory fro all buckets
@@ -46,6 +28,7 @@ void sc_hashmap_init(ScHashmap* hashmap, int num_buckets){
 void sc_hashmap_store(ScHashmap* hashmap, char* key, char* value){
 	// Get the bucket
 	int bucket_num = sc_hash_key(hashmap, key);
+
 	BucketH* bucket_ptr = hashmap->contents + bucket_num;
 
 	// Ensure that no such key exists in bucket
@@ -80,17 +63,19 @@ NodeH* sc_hashmap_lookup(ScHashmap* hashmap, char* key){
 	return node_ptr;
 }
 
+// Hashing function
+// Uses prime exponent
 int sc_hash_key(ScHashmap* hashmap, char* str){
 	int len = strlen(str);
 	int i;
 	int total = 0;
 
 	for(i = 0; i < len; i++){
-		int d = str[i];
-		total += d;
+		int digit = str[i];
+		total += (digit * PRIME * i);
 	}
 
-	total = total % hashmap->max_size;
+	total = (total * i) % hashmap->max_size;
 	return total;
 }
 
@@ -105,7 +90,7 @@ NodeH* sc_bucket_find_key(BucketH* bucket_ptr, char* key){
 
 	// Start at head
 	NodeH* node_ptr = bucket_ptr->head;
- do {
+  do {
 		// If you find key, return
 		if(strcmp(key, node_ptr->key) == 0){
 			return node_ptr;
@@ -113,7 +98,7 @@ NodeH* sc_bucket_find_key(BucketH* bucket_ptr, char* key){
 			// Go to next node
 			node_ptr = node_ptr->next;
 		}
-	} while(node_ptr->next != NULL);
+	} while(node_ptr != NULL);
 
 	// If not found, return null
 	return NULL;
@@ -127,41 +112,42 @@ void sc_bucket_insert(BucketH* bucket_ptr, NodeH* node_ptr){
 		node_ptr->next = NULL;
 		bucket_ptr->head = node_ptr;
 	} else {
-		// Insert Node at beginning of linked list
-		// Store previous head
-		NodeH* prev_head = bucket_ptr->head;
-		
-		// Assign new head of the bucket
-		bucket_ptr->head = node_ptr;
-
 		// Set next to previous head
-		node_ptr->next = prev_head;
+		node_ptr->next = bucket_ptr->head;
+
+		// Assign new head of the bucket
+		// As current node
+		bucket_ptr->head = node_ptr;
 	}
 
 	// Increase bucket count
 	bucket_ptr->count++;
 }
 
-void sc_print_hash(ScHashmap* hashmap){
+void sc_print_hash(ScHashmap* hashmap, int format){
 	int i;
 
-	printf("[ \n");
+	printf("{ \n");
 	for(i = 0; i < hashmap->max_size; i++){
 		BucketH bucket = hashmap->contents[i];
 
 		if(bucket.count > 0){
-			printf("  Bucket %d => {\n", i);
-			
 			// Traverse linked List
 			NodeH* node_ptr = bucket.head;
 			while(node_ptr != NULL){
-				printf("    '%s' => '%s'\n", node_ptr->key, node_ptr->value);
+				sc_print_formatted_kv_pair(format, i, node_ptr->key, node_ptr->value);
 				node_ptr = node_ptr->next;
 			}
-
-			printf("  },\n");
 		}
 	}
 
-	printf("]\n");	
+	printf("}\n");	
+}
+
+void sc_print_formatted_kv_pair(int format, int bucket, char* key, char* value){
+	if(format == NORMAL_FORMAT){
+		printf("  [%d] '%s' => '%s'\n", bucket, key, value);
+	} else if (format == POINTER_VALUE_FORMAT){
+		printf("  [%d] '%s' => '%p'\n", bucket, key, value);
+	}
 }

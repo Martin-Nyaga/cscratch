@@ -28,6 +28,10 @@ NodeH* sc_hashmap_lookup(ScHashmap*, char*);
 int sc_hash_key(ScHashmap*, char*);
 NodeH* sc_bucket_find_key(BucketH*, char*);
 void sc_bucket_insert(BucketH*, NodeH*);
-void sc_print_hash(ScHashmap*);
+void sc_print_hash(ScHashmap*, int);
+void sc_print_formatted_kv_pair(int, int, char*, char*);
+
+#define NORMAL_FORMAT 0
+#define POINTER_VALUE_FORMAT 1
 
 #endif

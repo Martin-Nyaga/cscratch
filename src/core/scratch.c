@@ -5,15 +5,32 @@
 #include <math.h>
 
 #include "stack.h"
+#include "hashmap.h"
 #include "scratch.h"
+
+#include "std/scstdlib.h"
 
 // No individual word is longer than 10 chars,
 // which is the longest size of an unsigned int,
 // so we can allocate a buffer of 10 chars
 #define MAX_WORD_LENGTH 10
 
+void sc_init(int stack_size){
+	// Initialize the program stack
+	sc_stack_init(&PROG_STACK, stack_size);
+
+	// Initialize the function table
+	sc_hashmap_init(&FUNCTION_TABLE, 100);
+
+	// Load standard library into function table
+	sc_load_std_lib();
+}
+
 // Take a stack, and an input & Interprete the result
-void sc_interprete(Stack* stack_ptr, char* input){
+void sc_interprete(char* input){
+	// Program stack
+	ScStack* stack_ptr = &PROG_STACK;
+
 	int length = strlen(input);
 	int i, wc = 0;
 
@@ -41,7 +58,9 @@ void sc_interprete(Stack* stack_ptr, char* input){
 		}
 		
 		// Call the function associated with a word
-		sc_call_func(stack_ptr, word_buffer);
+		// if a word was validly collected 
+		if(strlen(word_buffer))
+			sc_call_func(stack_ptr, word_buffer);
 		
 		// Clear buffer again
 		clear_char_buffer(word_buffer, MAX_WORD_LENGTH);
@@ -51,82 +70,49 @@ void sc_interprete(Stack* stack_ptr, char* input){
 	free(word_buffer);
 }
 
+// Call a function given by a specific string
+void sc_call_func(ScStack* stack_ptr, char* word){
+	// Make word uppercase
+	string_to_upper(word);
 
-void sc_call_func(Stack* stack_ptr, char* word){
+	// Check if string is number to add it to the stack
 	if(string_is_number(word)){
-		// FIXME: If Space is entered, it adds a 0 to the stack
-		stack_push(stack_ptr, (unsigned int) atoi(word));
-		return;
-	}
-	
-	// FIXME: This bunch of if's is not very pretty.
-	// 	Perhaps use a hashmap
-	//  to store valid strings and function ptrs, then
-	//  lookup the word and call the function defined by the
-	//  function ptr?
-	if(strcasecmp(word, "PSTACK") == 0){
-		stack_print(stack_ptr);
-		return;
-	}
-	
-	if(strcasecmp(word, "PRINT") == 0){
-		sc_print_top(stack_ptr);
+		sc_stack_push(stack_ptr, (unsigned int) atoi(word));
 		return;
 	}
 
-	if(strcasecmp(word, "DUP") == 0){
-		sc_dup_top(stack_ptr);
-		return;
-	}
+	// Lookup the function in the function table
+	NodeH* func_node = sc_hashmap_lookup(&FUNCTION_TABLE, word);
 
-	if(strcasecmp(word, "SWAP") == 0){
-		sc_swap(stack_ptr);
-		return;
+	// If the function is not found
+	if(func_node == NULL){
+		// Unknown word
+		fprintf(stderr, "Unknown word: '%s'!\n", word);
+	} else {
+		// Cast the function address into a function pointer
+		void (*func_to_call)() = (void (*)()) func_node->value;
+		// Call the function with stack as argument
+		(*func_to_call)(stack_ptr);
 	}
+}
 
-	if(strcasecmp(word, "DROP") == 0){
-		sc_drop(stack_ptr);
-		return;
+// Define a function in the function table given its name & function address
+void sc_define_function(char* func_name, void (*func_ptr)()){
+	// Cast function address into string
+	char* func_address = (char*) func_ptr;
+
+	// Store address in function table
+	sc_hashmap_store(&FUNCTION_TABLE, func_name, func_address);
+}
+
+// Helper Functions
+// -------------
+void clear_char_buffer(char* buffer, int len){
+	int i;
+
+	for(i = 0; i < len; i++){
+		buffer[i] = '\0';
 	}
-
-	if(strcasecmp(word, "DROPSTACK") == 0){
-		sc_drop_stack(stack_ptr);
-		return;
-	}
-
-	if(strcasecmp(word, "EXIT") == 0){
-		printf("Goodbye!\n");
-		exit(0);
-		return;
-	}
-
-	if(strcasecmp(word, "+") == 0){
-		sc_add(stack_ptr);
-		return;
-	}
-
-	if(strcasecmp(word, "-") == 0){
-		sc_subtract(stack_ptr);
-		return;
-	}
-
-	if(strcasecmp(word, "*") == 0){
-		sc_multiply(stack_ptr);
-		return;
-	}
-
-	if(strcasecmp(word, "/") == 0){
-		sc_divide(stack_ptr);
-		return;
-	}
-
-	if(strcasecmp(word, "SQRT") == 0){
-		sc_sqrt(stack_ptr);
-		return;
-	}
-
-	// Unknown word
-	printf("Unknown word %s\n", word);
 }
 
 int string_is_number(char* str){
@@ -142,131 +128,11 @@ int string_is_number(char* str){
 	return 1;
 }
 
-// Print value at top of the stack & pop
-// Show that stack is empty if stack is
-// empty
-void sc_print_top(Stack* stack_ptr){
-	if(stack_is_empty(stack_ptr)){
-		printf("Stack is empty.\n");
-		return;
-	}
-
-	// Value at top of the stack
-	unsigned int top = stack_pop(stack_ptr);
-	printf("%d\n", top);
-} 
-
-// Duplicate the top item in the stack
-// TODO: Should Error here when stack is empty
-void sc_dup_top(Stack* stack_ptr){
-	if(stack_is_empty(stack_ptr)){
-		printf("Stack is empty");
-		return;
-	}
-
-	// Get top element in the stack & push it again
-	// Onto the stack
-	unsigned int top = stack_ptr->contents[stack_ptr->top];
-	stack_push(stack_ptr, top);
-}
-
-void sc_swap(Stack* stack_ptr){
-	if(stack_ptr->top < 1){
-		printf("Requires at least 2 items on the stack\n");
-		return;
-	}
-
-	// Pick top & second and swap them
-	unsigned int top = stack_ptr->contents[stack_ptr->top];
-	unsigned int second = stack_ptr->contents[stack_ptr->top - 1];
-
-	stack_ptr->contents[stack_ptr->top] = second;
-	stack_ptr->contents[stack_ptr->top - 1] = top;
-}
-
-// TODO: Proper error handling if stack is empty
-void sc_drop(Stack* stack_ptr){
-	if(stack_is_empty(stack_ptr)){
-		printf("Stack is empty");
-		return;
-	}
-
-	stack_ptr->top = stack_ptr->top - 1;
-}
-
-void sc_drop_stack(Stack* stack_ptr){
-	// Set top to -1, new pushes will overwrite memory
-	stack_ptr->top = -1;
-}
-
-void clear_char_buffer(char* buffer, int len){
-	int i;
-
-	for(i = 0; i < len; i++){
-		buffer[i] = '\0';
+// Capitalize a string
+void string_to_upper(char* str){
+	int i = 0;
+	while(str[i]){
+		str[i] = toupper(str[i]);
+		i++;
 	}
 }
-
-void sc_add(Stack* stack_ptr){
-	if(stack_ptr->top < 1){
-		printf("Requires at least 2 items on the stack\n");
-		return;
-	}
-
-	unsigned int a = stack_pop(stack_ptr);
-	unsigned int b = stack_pop(stack_ptr);
-
-	unsigned int sum = a + b;
-	stack_push(stack_ptr, sum);
-}
-
-void sc_subtract(Stack* stack_ptr){
-	if(stack_ptr->top < 1){
-		printf("Requires at least 2 items on the stack\n");
-		return;
-	}
-
-	unsigned int a = stack_pop(stack_ptr);
-	unsigned int b = stack_pop(stack_ptr);
-
-	unsigned int sum = a - b;
-	stack_push(stack_ptr, sum);
-}
-
-void sc_multiply(Stack* stack_ptr){
-	if(stack_ptr->top < 1){
-		printf("Requires at least 2 items on the stack\n");
-		return;
-	}
-
-	unsigned int a = stack_pop(stack_ptr);
-	unsigned int b = stack_pop(stack_ptr);
-
-	unsigned int sum = a * b;
-	stack_push(stack_ptr, sum);
-}
-
-void sc_divide(Stack* stack_ptr){
-	if(stack_ptr->top < 1){
-		printf("Requires at least 2 items on the stack\n");
-		return;
-	}
-
-	unsigned int a = stack_pop(stack_ptr);
-	unsigned int b = stack_pop(stack_ptr);
-
-	unsigned int sum = a / b;
-	stack_push(stack_ptr, sum);
-}
-
-void sc_sqrt(Stack* stack_ptr){
-	if(stack_is_empty(stack_ptr)){
-		printf("Stack is empty");
-		return;
-	}
-
-	unsigned int a = stack_pop(stack_ptr);
-	unsigned int s = sqrt(a);
-	stack_push(stack_ptr, s);
-}
-
