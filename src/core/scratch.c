@@ -15,6 +15,10 @@
 // so we can allocate a buffer of 10 chars
 #define MAX_WORD_LENGTH 10
 
+// Max length for a procedure. Can allow fairly long
+// Procs: 256 chars
+#define MAX_PROC_LENGTH 256
+
 void sc_init(int stack_size){
 	// Initialize the program stack
 	sc_stack_init(&PROG_STACK, stack_size);
@@ -42,41 +46,110 @@ void sc_interprete(char* input){
 	// interfere with interpretation
 	clear_char_buffer(word_buffer, MAX_WORD_LENGTH);
 
+	// TO mark when a word is ready to be processed
+	int word_complete = 0;
+
 	// Read Char by char and build up words
 	// up to space or null terminator
-	for(i = 0; i < length; i++){
-		
-		// Normal word reading
-		while(input[i] != ' ' && input[i] != '\0'){
-
+	for(i = 0; i <= length; i++){
+		if(input[i] == '(' || input[i] == ')'){
 			// ignore parens, and leave them as a 
 			// formatting choice
-			if(input[i] == '(' || input[i] == ')'){
-				i++;
-				continue;
-			}
-
-			word_buffer[wc] = input[i];
+		} else if(input[i] == ' ' || input[i] == '\0'){
+			// terminate the string
+			word_complete = 1;
+		} else if(input[i] == '{'){
 			i++;
-			wc++;
-
-			// Overflow error if a single word is longer than the buffer
-			if(wc > MAX_WORD_LENGTH){
-				fprintf(stderr, "Overflow error, word too long!\n");
-				return;
+			// Procedures, defined by curly braces: {}
+			
+			// Get modifier for loops & if statements
+			// Loop modifier ':'
+			// If statement modifier '?'
+			char modifier = input[i];
+			if(modifier == ':' || modifier == '?'){
+				// If valid modifier, start proc from next char
+				i++;
 			}
+
+			// Allocate and ready proc buffer
+			char* proc_buffer = (char*) malloc(MAX_PROC_LENGTH * sizeof(char));
+			clear_char_buffer(proc_buffer, MAX_PROC_LENGTH);
+			int pc = 0;
+
+			// Use while to hijack processing
+			// Loop up to the next } storing the string.
+			// In the proc buffer
+			while(input[i] != '}'){
+				// Syntax error if input ends before close proc
+				if(input[i] == '\0'){
+					fprintf(stderr, "Syntax error. Expected '}' before end of line.!\n");
+					free(word_buffer);
+					free(proc_buffer);
+					return;
+				} else {
+					proc_buffer[pc] = input[i];
+					pc++;
+					i++;
+				}
+
+				if(pc > MAX_PROC_LENGTH){
+					fprintf(stderr, "Overflow error, proc longer than MAX_PROC_LENGTH!\n");
+					free(word_buffer);
+					free(proc_buffer);
+					return;
+				}
+			}
+
+			// If a proc has successfully been collectedssss
+			if(strlen(proc_buffer)){
+				// Loops
+				if(modifier == ':'){
+					int iterations = sc_stack_pop(stack_ptr);
+					int c;
+
+					for(c = 0; c < iterations; c++){
+						// Interprete the proc
+						sc_interprete(proc_buffer);
+					}
+
+					// Conditionals
+				} else if(modifier == '?'){
+					int condition = sc_stack_pop(stack_ptr);
+					if(condition){
+						sc_interprete(proc_buffer);
+					}
+				} else {
+					// interprete the proc as usual
+						sc_interprete(proc_buffer);
+				}
+			}
+		} else {
+			// We have a normal character so just add it to the word_buffer
+			word_complete = 0;
+			word_buffer[wc] = input[i];
+			wc++;
 		}
-		
+
+		// Overflow error if a single word is longer than the buffer
+		if(wc > MAX_WORD_LENGTH){
+			fprintf(stderr, "Overflow error, word longer than MAX_WORD_LENGTH!\n");
+			free(word_buffer);
+			return;
+		}
+
 		// Call the function associated with a word
 		// if a word was validly collected 
-		if(strlen(word_buffer))
+		if(word_complete && strlen(word_buffer)){
 			sc_call_func(stack_ptr, word_buffer);
-		
-		// Clear buffer again
-		clear_char_buffer(word_buffer, MAX_WORD_LENGTH);
-		wc = 0;
+
+			// Clear buffer again
+			clear_char_buffer(word_buffer, MAX_WORD_LENGTH);
+			wc = 0;
+			word_complete = 0;
+		}
 	}
 
+	// Free word buffer after interpretation round
 	free(word_buffer);
 }
 
