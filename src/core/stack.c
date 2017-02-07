@@ -36,7 +36,7 @@ void sc_stack_push(ScStack* stack_ptr, unsigned int value){
 		stack_ptr->top++;
 		stack_ptr->contents[stack_ptr->top] = value;
 	} else {
-		fprintf(stderr, "Stack is full!");
+		fprintf(stderr, "Stack is full!\n");
 	}
 }
 
@@ -54,7 +54,7 @@ unsigned int sc_stack_pop(ScStack* stack_ptr){
 
 		return top;
 	} else {
-		fprintf(stderr, "Stack is empty!");
+		fprintf(stderr, "Stack is empty!\n");
 		return 0;
 	}
 }

@@ -24,6 +24,13 @@ void sc_subtract(ScStack*);
 void sc_multiply(ScStack*);
 void sc_divide(ScStack*);
 void sc_sqrt(ScStack*);
+void sc_add_all(ScStack*);
+void sc_multiply_all(ScStack*);
+
+// Logic
+void sc_gt(ScStack*);
+void sc_lt(ScStack*);
+void sc_eq(ScStack*);
 
 // Quit
 void sc_quit(ScStack*);

@@ -23,10 +23,17 @@ void sc_load_std_lib(){
 
 	// Simple math
 	sc_define_function("+", &sc_add);
+	sc_define_function("+ALL", &sc_add_all);
 	sc_define_function("-", &sc_subtract);
 	sc_define_function("*", &sc_multiply);
+	sc_define_function("*ALL", &sc_multiply_all);
 	sc_define_function("/", &sc_divide);
 	sc_define_function("SQRT", &sc_sqrt);
+
+	// LOGIC
+	sc_define_function("EQ", &sc_eq);
+	sc_define_function("LT", &sc_lt);
+	sc_define_function("GT", &sc_gt);
 
 	// system functions
 	sc_define_function("EXIT", &sc_quit);
@@ -193,4 +200,51 @@ void sc_rotate(ScStack* stack_ptr){
 // Print all functions in the function table
 void sc_print_words(ScStack* _){
 	sc_print_hash(&FUNCTION_TABLE, POINTER_VALUE_FORMAT);
+}
+
+// TODO: Error behaviour?
+void sc_add_all(ScStack* stack_ptr){
+	while(stack_ptr->top){
+		sc_add(stack_ptr);
+	}
+}
+
+// TODO: Error behaviour?
+void sc_multiply_all(ScStack* stack_ptr){
+	while(stack_ptr->top){
+		sc_multiply(stack_ptr);
+	}
+}
+
+// TODO: Error behaviour?
+void sc_gt(ScStack* stack_ptr){
+	unsigned int a = sc_stack_pop(stack_ptr);
+	unsigned int b = sc_stack_pop(stack_ptr);
+	if(a > b){
+		sc_stack_push(stack_ptr, 1);
+	} else {
+		sc_stack_push(stack_ptr, 0);
+	}
+}
+
+// TODO: Error behaviour?
+void sc_lt(ScStack* stack_ptr){
+	unsigned int a = sc_stack_pop(stack_ptr);
+	unsigned int b = sc_stack_pop(stack_ptr);
+	if(a < b){
+		sc_stack_push(stack_ptr, 1);
+	} else {
+		sc_stack_push(stack_ptr, 0);
+	}
+}
+
+// TODO: Error behaviour?
+void sc_eq(ScStack* stack_ptr){
+	unsigned int a = sc_stack_pop(stack_ptr);
+	unsigned int b = sc_stack_pop(stack_ptr);
+	if(a == b){
+		sc_stack_push(stack_ptr, 1);
+	} else {
+		sc_stack_push(stack_ptr, 0);
+	}
 }
