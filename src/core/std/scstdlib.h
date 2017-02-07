@@ -17,8 +17,11 @@ void sc_drop_stack(ScStack*);
 void sc_print_stack(ScStack*);
 void sc_over(ScStack*);
 void sc_rotate(ScStack*);
+void sc_get_num_from_bottom(ScStack*);
+void sc_get_num_from_top(ScStack*);
 
 // Simple math
+void sc_modulus(ScStack*);
 void sc_add(ScStack*);
 void sc_subtract(ScStack*);
 void sc_multiply(ScStack*);
@@ -32,7 +35,9 @@ void sc_gt(ScStack*);
 void sc_lt(ScStack*);
 void sc_eq(ScStack*);
 
-// Quit
+// System
 void sc_quit(ScStack*);
 void sc_print_words(ScStack*);
+void sc_print_vars(ScStack* _);
+
 #endif

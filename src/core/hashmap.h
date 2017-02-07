@@ -24,7 +24,7 @@ typedef struct ScHashmap {
 
 void sc_hashmap_init(ScHashmap*, int);
 void sc_hashmap_store(ScHashmap*, char*, char*);
-NodeH* sc_hashmap_lookup(ScHashmap*, char*);
+NodeH* sc_hashmap_lookup(ScHashmap*, char*, int);
 int sc_hash_key(ScHashmap*, char*);
 NodeH* sc_bucket_find_key(BucketH*, char*);
 void sc_bucket_insert(BucketH*, NodeH*);
@@ -33,5 +33,8 @@ void sc_print_formatted_kv_pair(int, int, char*, char*);
 
 #define NORMAL_FORMAT 0
 #define POINTER_VALUE_FORMAT 1
+
+#define SHOW_LOOKUP_ERRORS 1
+#define HIDE_LOOKUP_ERRORS 0
 
 #endif

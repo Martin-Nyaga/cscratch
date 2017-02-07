@@ -19,12 +19,19 @@
 // Procs: 256 chars
 #define MAX_PROC_LENGTH 256
 
+// Error when parsing a proc
+#define PROC_ERROR 8989
+
+
 void sc_init(int stack_size){
 	// Initialize the program stack
 	sc_stack_init(&PROG_STACK, stack_size);
 
 	// Initialize the function table
 	sc_hashmap_init(&FUNCTION_TABLE, 100);
+
+	// Initialize variable table
+	sc_hashmap_init(&VARIABLE_TABLE, 100);
 
 	// Load standard library into function table
 	sc_load_std_lib();
@@ -37,7 +44,7 @@ void sc_interprete(char* input){
 
 	int length = strlen(input);
 	int i, wc = 0;
-
+	
 	// Word buffer of max word length
 	char* word_buffer = (char*) malloc(MAX_WORD_LENGTH * sizeof(char));
 	
@@ -59,69 +66,43 @@ void sc_interprete(char* input){
 			// terminate the string
 			word_complete = 1;
 		} else if(input[i] == '{'){
+			// Process proc
+			i = sc_process_proc(stack_ptr, input, i);
+
+			// If error return
+			if(i == PROC_ERROR){
+				free(word_buffer);
+				return;
+			}
+		} else if(input[i] == '/') {
+			// Variable declaration
+			// Skip forward slash character
 			i++;
-			// Procedures, defined by curly braces: {}
-			
-			// Get modifier for loops & if statements
-			// Loop modifier ':'
-			// If statement modifier '?'
-			char modifier = input[i];
-			if(modifier == ':' || modifier == '?'){
-				// If valid modifier, start proc from next char
+
+			// Name buffer of max word length
+			char* var_name_buffer = (char*) malloc(MAX_WORD_LENGTH * sizeof(char));
+			int vc = 0;
+
+			// Collect chars up to space or null terminator
+			while(input[i] != ' ' && input[i] != '\0'){
+				var_name_buffer[vc] = input[i];
 				i++;
+				vc++;
 			}
 
-			// Allocate and ready proc buffer
-			char* proc_buffer = (char*) malloc(MAX_PROC_LENGTH * sizeof(char));
-			clear_char_buffer(proc_buffer, MAX_PROC_LENGTH);
-			int pc = 0;
+			// If valid name, store variable
+			if(strlen(var_name_buffer)){
+				unsigned int value = sc_stack_pop(stack_ptr);
+				
+				// Cast value to string
+				char* value_as_string = (char*) malloc(MAX_WORD_LENGTH * sizeof(char));
+				sprintf(value_as_string, "%d", value);
 
-			// Use while to hijack processing
-			// Loop up to the next } storing the string.
-			// In the proc buffer
-			while(input[i] != '}'){
-				// Syntax error if input ends before close proc
-				if(input[i] == '\0'){
-					fprintf(stderr, "Syntax error. Expected '}' before end of line.!\n");
-					free(word_buffer);
-					free(proc_buffer);
-					return;
-				} else {
-					proc_buffer[pc] = input[i];
-					pc++;
-					i++;
-				}
+				// Make variable name all caps
+				string_to_upper(var_name_buffer);
 
-				if(pc > MAX_PROC_LENGTH){
-					fprintf(stderr, "Overflow error, proc longer than MAX_PROC_LENGTH!\n");
-					free(word_buffer);
-					free(proc_buffer);
-					return;
-				}
-			}
-
-			// If a proc has successfully been collectedssss
-			if(strlen(proc_buffer)){
-				// Loops
-				if(modifier == ':'){
-					int iterations = sc_stack_pop(stack_ptr);
-					int c;
-
-					for(c = 0; c < iterations; c++){
-						// Interprete the proc
-						sc_interprete(proc_buffer);
-					}
-
-					// Conditionals
-				} else if(modifier == '?'){
-					int condition = sc_stack_pop(stack_ptr);
-					if(condition){
-						sc_interprete(proc_buffer);
-					}
-				} else {
-					// interprete the proc as usual
-						sc_interprete(proc_buffer);
-				}
+				// Store value in variable table
+				sc_hashmap_store(&VARIABLE_TABLE, var_name_buffer, value_as_string);
 			}
 		} else {
 			// We have a normal character so just add it to the word_buffer
@@ -153,6 +134,96 @@ void sc_interprete(char* input){
 	free(word_buffer);
 }
 
+// Process a proc, take the input string
+// and the current index;
+int sc_process_proc(ScStack* stack_ptr, char* input, int i){
+	// Procedures, defined by curly braces: {}
+	// Skip curly brace char
+	i++;
+	
+	// Get modifier for loops & if statements
+	// Loop modifier ':'
+	// If statement modifier '?'
+	char modifier = input[i];
+	if(modifier == ':' || modifier == '?'){
+		// If valid modifier, start proc from next char
+		i++;
+	}
+
+	// Allocate and ready proc buffer
+	char* proc_buffer = (char*) malloc(MAX_PROC_LENGTH * sizeof(char));
+	clear_char_buffer(proc_buffer, MAX_PROC_LENGTH);
+	int pc = 0;
+
+	// Use while to hijack processing
+	// Loop up to the closing } storing the string.
+	// In the proc buffer
+	// Store number of open parens
+	int num_open_parens = 1;
+	while(num_open_parens){
+		// Syntax error if input ends before close proc
+		if(input[i] == '\0'){
+			fprintf(stderr, "Syntax error. Expected '}' before end of line.!\n");
+			free(proc_buffer);
+			return PROC_ERROR;
+		} else if(input[i] == '}' && num_open_parens == 1){
+			// If we are on the closing paren
+			// Don't add it to the buffer
+			num_open_parens--;
+		} else {
+			// Increment open parens
+			if(input[i] == '{'){
+				num_open_parens++;
+			}
+
+			// Decrement open parens
+			if(input[i] == '}'){
+				num_open_parens--;
+			}
+
+			proc_buffer[pc] = input[i];
+			pc++;
+			i++;
+		}
+
+		if(pc > MAX_PROC_LENGTH){
+			fprintf(stderr, "Overflow error, proc longer than MAX_PROC_LENGTH!\n");
+			free(proc_buffer);
+			return PROC_ERROR;
+		}
+	}
+
+	// If a proc has successfully been collected
+	if(strlen(proc_buffer)){
+		// Loops
+		if(modifier == ':'){
+			int iterations = sc_stack_pop(stack_ptr);
+			int c;
+
+			for(c = 0; c < iterations; c++){
+				// Interprete the proc
+				sc_interprete(proc_buffer);
+			}
+
+			// Conditionals
+		} else if(modifier == '?'){
+			int condition = sc_stack_pop(stack_ptr);
+			if(condition){
+				sc_interprete(proc_buffer);
+			}
+		} else {
+			// interprete the proc as usual
+			sc_interprete(proc_buffer);
+		}
+
+		// Skip the } character finally
+		i++;
+	}
+
+	// Return the new index
+	return i;
+}
+
 // Call a function given by a specific string
 void sc_call_func(ScStack* stack_ptr, char* word){
 	// Make word uppercase
@@ -161,21 +232,32 @@ void sc_call_func(ScStack* stack_ptr, char* word){
 	// Check if string is number to add it to the stack
 	if(string_is_number(word)){
 		sc_stack_push(stack_ptr, (unsigned int) atoi(word));
-		return;
-	}
-
-	// Lookup the function in the function table
-	NodeH* func_node = sc_hashmap_lookup(&FUNCTION_TABLE, word);
-
-	// If the function is not found
-	if(func_node == NULL){
-		// Unknown word
-		fprintf(stderr, "Unknown word: '%s'!\n", word);
 	} else {
-		// Cast the function address into a function pointer
-		void (*func_to_call)() = (void (*)()) func_node->value;
-		// Call the function with stack as argument
-		(*func_to_call)(stack_ptr);
+		// Lookup the function in the function table
+		NodeH* func_node = sc_hashmap_lookup(&FUNCTION_TABLE, word, HIDE_LOOKUP_ERRORS);
+
+		// If the function is not found
+		if(func_node == NULL){
+			// Look up the word in the variable table
+			NodeH* var_node = sc_hashmap_lookup(&VARIABLE_TABLE, word, HIDE_LOOKUP_ERRORS);
+
+			if(var_node == NULL) {
+				// Unknown word
+				fprintf(stderr, "Unknown word: '%s'!\n", word);
+			} else {
+				// Fetch the value from node
+				char* value = var_node->value;
+
+				// Cast to uint and push to stack
+				sc_stack_push(stack_ptr, (unsigned int) atoi(value));
+			}
+
+		} else {
+			// Cast the function address into a function pointer
+			void (*func_to_call)() = (void (*)()) func_node->value;
+			// Call the function with stack as argument
+			(*func_to_call)(stack_ptr);
+		}
 	}
 }
 
@@ -186,6 +268,17 @@ void sc_define_function(char* func_name, void (*func_ptr)()){
 
 	// Store address in function table
 	sc_hashmap_store(&FUNCTION_TABLE, func_name, func_address);
+}
+
+// Require a certain number of arguments on the stack
+// Useful in STDLIB
+int sc_require_arity(ScStack* stack_ptr, int args_num){
+	if((stack_ptr->top + 1) < args_num){
+		fprintf(stderr, "Requires at least %d items on the stack!\n", args_num);
+		return 0;
+	} else {
+		return 1;
+	}
 }
 
 // Helper Functions

@@ -46,7 +46,7 @@ void sc_hashmap_store(ScHashmap* hashmap, char* key, char* value){
 	sc_bucket_insert(bucket_ptr, node_ptr);
 }
 
-NodeH* sc_hashmap_lookup(ScHashmap* hashmap, char* key){
+NodeH* sc_hashmap_lookup(ScHashmap* hashmap, char* key, int show_errors){
 	// Get the bucket
 	int bucket_num = sc_hash_key(hashmap, key);
 	BucketH* bucket_ptr = hashmap->contents + bucket_num;
@@ -55,7 +55,7 @@ NodeH* sc_hashmap_lookup(ScHashmap* hashmap, char* key){
 	NodeH* node_ptr = sc_bucket_find_key(bucket_ptr, key);
 
 	// Print error if null
-	if(node_ptr == NULL){
+	if(node_ptr == NULL && show_errors){
 		fprintf(stderr, "Key not found in hashmap!\n");
 	}
 

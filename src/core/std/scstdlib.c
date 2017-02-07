@@ -22,13 +22,14 @@ void sc_load_std_lib(){
 	sc_define_function("ROT", &sc_rotate);
 
 	// Simple math
-	sc_define_function("+", &sc_add);
-	sc_define_function("+ALL", &sc_add_all);
-	sc_define_function("-", &sc_subtract);
-	sc_define_function("*", &sc_multiply);
-	sc_define_function("*ALL", &sc_multiply_all);
-	sc_define_function("/", &sc_divide);
+	sc_define_function("ADD", &sc_add);
+	sc_define_function("SUMALL", &sc_add_all);
+	sc_define_function("SUB", &sc_subtract);
+	sc_define_function("MUL", &sc_multiply);
+	sc_define_function("MULALL", &sc_multiply_all);
+	sc_define_function("DIV", &sc_divide);
 	sc_define_function("SQRT", &sc_sqrt);
+	sc_define_function("MOD", &sc_modulus);
 
 	// LOGIC
 	sc_define_function("EQ", &sc_eq);
@@ -36,16 +37,17 @@ void sc_load_std_lib(){
 	sc_define_function("GT", &sc_gt);
 
 	// system functions
+	sc_define_function(">", &sc_get_num_from_bottom);
+	sc_define_function("<", &sc_get_num_from_top);
 	sc_define_function("EXIT", &sc_quit);
 	sc_define_function("PWORDS", &sc_print_words);
+	sc_define_function("PVARS", &sc_print_vars);
 }
 
 // Print value at top of the stack & pop
-// Show that stack is empty if stack is
-// empty
 void sc_print_top(ScStack* stack_ptr){
-	if(sc_stack_is_empty(stack_ptr)){
-		printf("Stack is empty.\n");
+	// Require 1 item on stack on stack
+	if(!sc_require_arity(stack_ptr, 1)){
 		return;
 	}
 
@@ -55,10 +57,9 @@ void sc_print_top(ScStack* stack_ptr){
 } 
 
 // Duplicate the top item in the stack
-// TODO: Should Error here when stack is empty
 void sc_dup_top(ScStack* stack_ptr){
-	if(sc_stack_is_empty(stack_ptr)){
-		printf("Stack is empty");
+	// Require 1 item on stack on stack
+	if(!sc_require_arity(stack_ptr, 1)){
 		return;
 	}
 
@@ -68,9 +69,10 @@ void sc_dup_top(ScStack* stack_ptr){
 	sc_stack_push(stack_ptr, top);
 }
 
+// Swap top 2 items on stack
 void sc_swap(ScStack* stack_ptr){
-	if(stack_ptr->top < 1){
-		printf("Requires at least 2 items on the stack\n");
+	// Require 2 item on stack on stack
+	if(!sc_require_arity(stack_ptr, 2)){
 		return;
 	}
 
@@ -82,19 +84,21 @@ void sc_swap(ScStack* stack_ptr){
 	stack_ptr->contents[stack_ptr->top - 1] = top;
 }
 
-// TODO: Proper error handling if stack is empty
+// Drop top item from stack
 void sc_drop(ScStack* stack_ptr){
-	if(sc_stack_is_empty(stack_ptr)){
-		printf("Stack is empty");
+	// Require 1 item on stack on stack
+	if(!sc_require_arity(stack_ptr, 1)){
 		return;
-	}
+	};
 
 	stack_ptr->top = stack_ptr->top - 1;
 }
 
+// Clean stack
 void sc_drop_stack(ScStack* stack_ptr){
-	// Set top to -1, new pushes will overwrite memory
-	stack_ptr->top = -1;
+	while(!sc_stack_is_empty(stack_ptr)){
+		sc_stack_pop(stack_ptr);
+	}
 }
 
 // Print the stack
@@ -111,8 +115,8 @@ void sc_print_stack(ScStack* stack_ptr){
 }
 
 void sc_add(ScStack* stack_ptr){
-	if(stack_ptr->top < 1){
-		printf("Requires at least 2 items on the stack\n");
+	// Require 2 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 2)){
 		return;
 	}
 
@@ -124,8 +128,8 @@ void sc_add(ScStack* stack_ptr){
 }
 
 void sc_subtract(ScStack* stack_ptr){
-	if(stack_ptr->top < 1){
-		printf("Requires at least 2 items on the stack\n");
+	// Require 2 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 2)){
 		return;
 	}
 
@@ -137,8 +141,8 @@ void sc_subtract(ScStack* stack_ptr){
 }
 
 void sc_multiply(ScStack* stack_ptr){
-	if(stack_ptr->top < 1){
-		printf("Requires at least 2 items on the stack\n");
+	// Require 2 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 2)){
 		return;
 	}
 
@@ -150,8 +154,8 @@ void sc_multiply(ScStack* stack_ptr){
 }
 
 void sc_divide(ScStack* stack_ptr){
-	if(stack_ptr->top < 1){
-		printf("Requires at least 2 items on the stack\n");
+	// Require 2 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 2)){
 		return;
 	}
 
@@ -162,9 +166,22 @@ void sc_divide(ScStack* stack_ptr){
 	sc_stack_push(stack_ptr, sum);
 }
 
+void sc_modulus(ScStack* stack_ptr){
+	// Require 2 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 2)){
+		return;
+	}
+
+	unsigned int a = sc_stack_pop(stack_ptr);
+	unsigned int b = sc_stack_pop(stack_ptr);
+
+	unsigned int sum = a % b;
+	sc_stack_push(stack_ptr, sum);
+}
+
 void sc_sqrt(ScStack* stack_ptr){
-	if(sc_stack_is_empty(stack_ptr)){
-		printf("Stack is empty");
+	// Require 1 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 1)){
 		return;
 	}
 
@@ -179,19 +196,36 @@ void sc_quit(ScStack* _){
 }
 
 void sc_over(ScStack* stack_ptr){
+	// Require 2 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 2)){
+		return;
+	}
+
+	// Stack = 1 2
+	// a = 2, b = 1
 	unsigned int a = sc_stack_pop(stack_ptr);
 	unsigned int b = sc_stack_pop(stack_ptr);
-	sc_stack_push(stack_ptr, a);
+
+	// 1 2 1
 	sc_stack_push(stack_ptr, b);
 	sc_stack_push(stack_ptr, a);
+	sc_stack_push(stack_ptr, b);
 }
 
 // Bring 3rd element to top
 void sc_rotate(ScStack* stack_ptr){
+	// Require 3 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 3)){
+		return;
+	}
+
+	// stack 1 2 3
+	// a = 3, b = 2, c = 1
 	unsigned int a = sc_stack_pop(stack_ptr);
 	unsigned int b = sc_stack_pop(stack_ptr);
 	unsigned int c = sc_stack_pop(stack_ptr);
 
+	// 2 3 1
 	sc_stack_push(stack_ptr, b);
 	sc_stack_push(stack_ptr, a);
 	sc_stack_push(stack_ptr, c);
@@ -202,22 +236,40 @@ void sc_print_words(ScStack* _){
 	sc_print_hash(&FUNCTION_TABLE, POINTER_VALUE_FORMAT);
 }
 
-// TODO: Error behaviour?
+// Print all functions in the function table
+void sc_print_vars(ScStack* _){
+	sc_print_hash(&VARIABLE_TABLE, NORMAL_FORMAT);
+}
+
 void sc_add_all(ScStack* stack_ptr){
+	// Require 1 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 1)){
+		return;
+	}
+
 	while(stack_ptr->top){
 		sc_add(stack_ptr);
 	}
 }
 
-// TODO: Error behaviour?
 void sc_multiply_all(ScStack* stack_ptr){
+	// Require 1 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 1)){
+		return;
+	}
+
 	while(stack_ptr->top){
 		sc_multiply(stack_ptr);
 	}
 }
 
-// TODO: Error behaviour?
+// Greater than
 void sc_gt(ScStack* stack_ptr){
+	// Require 2 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 2)){
+		return;
+	}
+
 	unsigned int a = sc_stack_pop(stack_ptr);
 	unsigned int b = sc_stack_pop(stack_ptr);
 	if(a > b){
@@ -227,8 +279,13 @@ void sc_gt(ScStack* stack_ptr){
 	}
 }
 
-// TODO: Error behaviour?
+// LEss than
 void sc_lt(ScStack* stack_ptr){
+	// Require 2 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 2)){
+		return;
+	}
+
 	unsigned int a = sc_stack_pop(stack_ptr);
 	unsigned int b = sc_stack_pop(stack_ptr);
 	if(a < b){
@@ -238,13 +295,54 @@ void sc_lt(ScStack* stack_ptr){
 	}
 }
 
-// TODO: Error behaviour?
+// Equal to
 void sc_eq(ScStack* stack_ptr){
+	// Require 2 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 2)){
+		return;
+	}
+
 	unsigned int a = sc_stack_pop(stack_ptr);
 	unsigned int b = sc_stack_pop(stack_ptr);
 	if(a == b){
 		sc_stack_push(stack_ptr, 1);
 	} else {
 		sc_stack_push(stack_ptr, 0);
+	}
+}
+
+// Get the number specified by an index from the bottom of
+// the stack and put a copy on the top of the stack
+void sc_get_num_from_bottom(ScStack* stack_ptr){
+	// Require 2 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 2)){
+		return;
+	}
+
+	int index = sc_stack_pop(stack_ptr);
+
+	if(index > stack_ptr->top || index < 0){
+		fprintf(stderr, "Overflow Error: Index out of range!\n");
+	} else {
+		sc_stack_push(stack_ptr, stack_ptr->contents[index]);
+	}
+}
+
+
+// Get the number specified by an index from the top of
+// the stack and put a copy on the top of the stack
+void sc_get_num_from_top(ScStack* stack_ptr){
+	// Require 2 items on stack on stack
+	if(!sc_require_arity(stack_ptr, 2)){
+		return;
+	}
+
+	int index = sc_stack_pop(stack_ptr);
+
+	if(index > stack_ptr->top || index < 0){
+		fprintf(stderr, "Overflow Error: Index out of range!\n");
+	} else {
+		index = stack_ptr->top - index;
+		sc_stack_push(stack_ptr, stack_ptr->contents[index]);
 	}
 }
