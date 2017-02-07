@@ -6,7 +6,9 @@
 
 void sc_init(int);
 void sc_interprete(char*);
+
 int sc_process_proc(ScStack*, char*, int);
+int sc_store_variable(ScStack* stack_ptr, char* input, int i);
 
 void sc_call_func(ScStack*, char*);
 void sc_define_function(char*, void (*)());

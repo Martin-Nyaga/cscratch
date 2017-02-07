@@ -25,7 +25,7 @@ void sc_hashmap_init(ScHashmap* hashmap, int num_buckets){
 	}
 }
 
-void sc_hashmap_store(ScHashmap* hashmap, char* key, char* value){
+void sc_hashmap_store(ScHashmap* hashmap, char* key, char* value, int make_copies){
 	// Get the bucket
 	int bucket_num = sc_hash_key(hashmap, key);
 
@@ -40,8 +40,15 @@ void sc_hashmap_store(ScHashmap* hashmap, char* key, char* value){
 
 	// Init the node
 	NodeH* node_ptr = (NodeH*) malloc(sizeof(NodeH));
-	node_ptr->key = key;
-	node_ptr->value = value;
+
+	if(make_copies){
+		// Allocate & store key and value
+		node_ptr->key = (char*) strdup(key);
+		node_ptr->value = (char*) strdup(value);
+	} else {
+		node_ptr->key = key;
+		node_ptr->value = value;
+	}
 
 	sc_bucket_insert(bucket_ptr, node_ptr);
 }

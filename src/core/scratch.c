@@ -22,6 +22,9 @@
 // Error when parsing a proc
 #define PROC_ERROR 8989
 
+// Error when storing a variable
+#define VARIABLE_ERROR 89898
+
 
 void sc_init(int stack_size){
 	// Initialize the program stack
@@ -75,34 +78,12 @@ void sc_interprete(char* input){
 				return;
 			}
 		} else if(input[i] == '/') {
-			// Variable declaration
-			// Skip forward slash character
-			i++;
+			// Store variable
+			i = sc_store_variable(stack_ptr, input, i);
 
-			// Name buffer of max word length
-			char* var_name_buffer = (char*) malloc(MAX_WORD_LENGTH * sizeof(char));
-			int vc = 0;
-
-			// Collect chars up to space or null terminator
-			while(input[i] != ' ' && input[i] != '\0'){
-				var_name_buffer[vc] = input[i];
-				i++;
-				vc++;
-			}
-
-			// If valid name, store variable
-			if(strlen(var_name_buffer)){
-				unsigned int value = sc_stack_pop(stack_ptr);
-				
-				// Cast value to string
-				char* value_as_string = (char*) malloc(MAX_WORD_LENGTH * sizeof(char));
-				sprintf(value_as_string, "%d", value);
-
-				// Make variable name all caps
-				string_to_upper(var_name_buffer);
-
-				// Store value in variable table
-				sc_hashmap_store(&VARIABLE_TABLE, var_name_buffer, value_as_string);
+			if(i == VARIABLE_ERROR){
+				free(word_buffer);
+				return;
 			}
 		} else {
 			// We have a normal character so just add it to the word_buffer
@@ -220,7 +201,60 @@ int sc_process_proc(ScStack* stack_ptr, char* input, int i){
 		i++;
 	}
 
+	free(proc_buffer);
 	// Return the new index
+	return i;
+}
+
+int sc_store_variable(ScStack* stack_ptr, char* input, int i){
+	// Blow up with variable error if nothing on stack
+	if(!sc_require_arity(stack_ptr, 1)){
+		return VARIABLE_ERROR;
+	}
+
+	// Variable declaration
+	// Skip forward slash character
+	i++;
+
+	// Name buffer of max word length
+	char* var_name_buffer = (char*) malloc(MAX_WORD_LENGTH * sizeof(char));
+	clear_char_buffer(var_name_buffer, MAX_WORD_LENGTH);
+
+	int vc = 0;
+
+	// Collect chars up to space or null terminator
+	while(!isspace(input[i]) && input[i] != '\0'){
+		// TODO: Blow up with VARIABLE_ERROR if 
+		// a special character is used
+
+		var_name_buffer[vc] = input[i];
+		i++;
+		vc++;
+	}
+
+	// If valid name, store variable
+	if(strlen(var_name_buffer)){
+		unsigned int value = sc_stack_pop(stack_ptr);
+		
+		// Cast value to string
+		char* value_as_string = (char*) malloc(MAX_WORD_LENGTH * sizeof(char));
+		sprintf(value_as_string, "%d", value);
+
+		// Make variable name all caps
+		string_to_upper(var_name_buffer);
+
+		// TODO: Blow up with VARIABLE_ERROR if 
+		// a reserved word is used
+
+		// Store value in variable table
+		sc_hashmap_store(&VARIABLE_TABLE, var_name_buffer, value_as_string, MAKE_STRING_COPIES);
+		
+		// Free value as string buffer
+		free(value_as_string);
+	}
+
+	// Free var name buffer
+	free(var_name_buffer);
 	return i;
 }
 
@@ -253,8 +287,10 @@ void sc_call_func(ScStack* stack_ptr, char* word){
 			}
 
 		} else {
+
 			// Cast the function address into a function pointer
 			void (*func_to_call)() = (void (*)()) func_node->value;
+
 			// Call the function with stack as argument
 			(*func_to_call)(stack_ptr);
 		}
@@ -267,7 +303,7 @@ void sc_define_function(char* func_name, void (*func_ptr)()){
 	char* func_address = (char*) func_ptr;
 
 	// Store address in function table
-	sc_hashmap_store(&FUNCTION_TABLE, func_name, func_address);
+	sc_hashmap_store(&FUNCTION_TABLE, func_name, func_address, NO_STRING_COPIES);
 }
 
 // Require a certain number of arguments on the stack
