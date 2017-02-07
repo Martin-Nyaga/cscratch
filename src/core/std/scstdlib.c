@@ -18,6 +18,8 @@ void sc_load_std_lib(){
 	sc_define_function("SWAP", &sc_swap);
 	sc_define_function("DROP", &sc_drop);
 	sc_define_function("DROPSTACK", &sc_drop_stack);
+	sc_define_function("OVER", &sc_over);
+	sc_define_function("ROT", &sc_rotate);
 
 	// Simple math
 	sc_define_function("+", &sc_add);
@@ -167,6 +169,25 @@ void sc_sqrt(ScStack* stack_ptr){
 void sc_quit(ScStack* _){
 	printf("Goodbye!\n");
 	exit(0);
+}
+
+void sc_over(ScStack* stack_ptr){
+	unsigned int a = sc_stack_pop(stack_ptr);
+	unsigned int b = sc_stack_pop(stack_ptr);
+	sc_stack_push(stack_ptr, a);
+	sc_stack_push(stack_ptr, b);
+	sc_stack_push(stack_ptr, a);
+}
+
+// Bring 3rd element to top
+void sc_rotate(ScStack* stack_ptr){
+	unsigned int a = sc_stack_pop(stack_ptr);
+	unsigned int b = sc_stack_pop(stack_ptr);
+	unsigned int c = sc_stack_pop(stack_ptr);
+
+	sc_stack_push(stack_ptr, b);
+	sc_stack_push(stack_ptr, a);
+	sc_stack_push(stack_ptr, c);
 }
 
 // Print all functions in the function table

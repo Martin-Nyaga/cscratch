@@ -15,6 +15,8 @@ void sc_swap(ScStack*);
 void sc_drop(ScStack*);
 void sc_drop_stack(ScStack*);
 void sc_print_stack(ScStack*);
+void sc_over(ScStack*);
+void sc_rotate(ScStack*);
 
 // Simple math
 void sc_add(ScStack*);

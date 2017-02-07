@@ -45,14 +45,24 @@ void sc_interprete(char* input){
 	// Read Char by char and build up words
 	// up to space or null terminator
 	for(i = 0; i < length; i++){
+		
+		// Normal word reading
 		while(input[i] != ' ' && input[i] != '\0'){
+
+			// ignore parens, and leave them as a 
+			// formatting choice
+			if(input[i] == '(' || input[i] == ')'){
+				i++;
+				continue;
+			}
+
 			word_buffer[wc] = input[i];
 			i++;
 			wc++;
 
 			// Overflow error if a single word is longer than the buffer
 			if(wc > MAX_WORD_LENGTH){
-				printf("Overflow error, word too long.\n");
+				fprintf(stderr, "Overflow error, word too long!\n");
 				return;
 			}
 		}
