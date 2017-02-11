@@ -5,9 +5,6 @@
 
 #include "hashmap.h"
 
-// Used in hashing function
-static int PRIME = 105613;
-
 void sc_hashmap_init(ScHashmap* hashmap, int num_buckets){
 	// Allocate memory fro all buckets
 	BucketH* new_contents_ptr = (BucketH*) malloc(num_buckets * sizeof(BucketH));
@@ -25,7 +22,7 @@ void sc_hashmap_init(ScHashmap* hashmap, int num_buckets){
 	}
 }
 
-void sc_hashmap_store(ScHashmap* hashmap, char* key, char* value, int make_copies){
+void sc_hashmap_store(ScHashmap* hashmap, char* key, char* value, int make_copies, int overwrite_values){
 	// Get the bucket
 	int bucket_num = sc_hash_key(hashmap, key);
 
@@ -34,7 +31,20 @@ void sc_hashmap_store(ScHashmap* hashmap, char* key, char* value, int make_copie
 	// Ensure that no such key exists in bucket
 	NodeH* existing_node_ptr = sc_bucket_find_key(bucket_ptr, key);
 	if(existing_node_ptr != NULL){
-		fprintf(stderr, "Duplicate key found in bucket! Key: '%s' will not be stored.\n", key);
+		if(!overwrite_values){
+			fprintf(stderr, "Duplicate key found in bucket! Key: '%s' will not be stored.\n", key);
+		} else {
+			// Free old value
+			free(existing_node_ptr->value);
+
+			// Overwrite existing value with new value
+			if(make_copies){
+				// Allocate & store key and value
+				existing_node_ptr->value = (char*) strdup(value);
+			} else {
+				existing_node_ptr->value = value;
+			}
+		}
 		return;
 	}
 
@@ -70,8 +80,7 @@ NodeH* sc_hashmap_lookup(ScHashmap* hashmap, char* key, int show_errors){
 	return node_ptr;
 }
 
-// Hashing function
-// Uses prime exponent
+// Simple Hashing function
 int sc_hash_key(ScHashmap* hashmap, char* str){
 	int len = strlen(str);
 	int i;
@@ -79,10 +88,9 @@ int sc_hash_key(ScHashmap* hashmap, char* str){
 
 	for(i = 0; i < len; i++){
 		int digit = str[i];
-		total += (digit * PRIME * i);
+		total += digit;
 	}
 
-	total = (total * i) % hashmap->max_size;
 	return total;
 }
 

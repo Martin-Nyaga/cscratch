@@ -23,4 +23,5 @@ void clear_char_buffer(char*, int);
 ScHashmap FUNCTION_TABLE;
 ScStack PROG_STACK;
 ScHashmap VARIABLE_TABLE;
+ScHashmap USERDEF_FUNCTION_TABLE;
 #endif

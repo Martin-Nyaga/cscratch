@@ -42,6 +42,7 @@ void sc_load_std_lib(){
 	sc_define_function("EXIT", &sc_quit);
 	sc_define_function("PWORDS", &sc_print_words);
 	sc_define_function("PVARS", &sc_print_vars);
+	sc_define_function("PFUNCS", &sc_print_userdef_functions);
 }
 
 // Print value at top of the stack & pop
@@ -240,6 +241,12 @@ void sc_print_words(ScStack* _){
 void sc_print_vars(ScStack* _){
 	sc_print_hash(&VARIABLE_TABLE, NORMAL_FORMAT);
 }
+
+// Print all user defined functions
+void sc_print_userdef_functions(ScStack* _){
+	sc_print_hash(&USERDEF_FUNCTION_TABLE, NORMAL_FORMAT);
+}
+
 
 void sc_add_all(ScStack* stack_ptr){
 	// Require 1 items on stack on stack

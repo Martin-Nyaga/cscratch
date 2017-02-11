@@ -39,5 +39,6 @@ void sc_eq(ScStack*);
 void sc_quit(ScStack*);
 void sc_print_words(ScStack*);
 void sc_print_vars(ScStack* _);
+void sc_print_userdef_functions(ScStack* _);
 
 #endif

@@ -1,3 +1,14 @@
+CC=gcc
+CFLAGS=-std=c99 -Wall
 
-default: src/repl.c src/core/stack.c src/core/hashmap.c src/core/scratch.c src/core/std/scstdlib.c
-	cc -std=c99 -Wall src/core/stack.c src/core/hashmap.c src/core/scratch.c src/core/std/scstdlib.c  src/repl.c -ledit -o repl
+all: ./repl ./interprete
+	
+repl: src/core/stack.c src/core/hashmap.c src/core/std/scstdlib.c src/core/scratch.c
+	$(CC) $(CFLAGS) src/core/stack.c src/core/hashmap.c src/core/std/scstdlib.c src/core/scratch.c src/repl.c -ledit -o bin/repl
+
+interprete: src/core/stack.c src/core/hashmap.c src/core/std/scstdlib.c src/core/scratch.c
+	$(CC) $(CFLAGS) src/core/stack.c src/core/hashmap.c src/core/std/scstdlib.c src/core/scratch.c src/interprete.c -ledit -o bin/interprete
+
+clean:
+	rm bin/repl bin/interprete
+	

@@ -13,7 +13,7 @@
 // No individual word is longer than 10 chars,
 // which is the longest size of an unsigned int,
 // so we can allocate a buffer of 10 chars
-#define MAX_WORD_LENGTH 10
+#define MAX_WORD_LENGTH 20
 
 // Max length for a procedure. Can allow fairly long
 // Procs: 256 chars
@@ -31,10 +31,13 @@ void sc_init(int stack_size){
 	sc_stack_init(&PROG_STACK, stack_size);
 
 	// Initialize the function table
-	sc_hashmap_init(&FUNCTION_TABLE, 100);
+	sc_hashmap_init(&FUNCTION_TABLE, 1000);
 
 	// Initialize variable table
-	sc_hashmap_init(&VARIABLE_TABLE, 100);
+	sc_hashmap_init(&VARIABLE_TABLE, 1000);
+
+	// Initialize variable table
+	sc_hashmap_init(&USERDEF_FUNCTION_TABLE, 1000);
 
 	// Load standard library into function table
 	sc_load_std_lib();
@@ -65,7 +68,7 @@ void sc_interprete(char* input){
 		if(input[i] == '(' || input[i] == ')'){
 			// ignore parens, and leave them as a 
 			// formatting choice
-		} else if(input[i] == ' ' || input[i] == '\0'){
+		} else if(isspace(input[i]) || input[i] == '\0'){
 			// terminate the string
 			word_complete = 1;
 		} else if(input[i] == '{'){
@@ -84,6 +87,13 @@ void sc_interprete(char* input){
 			if(i == VARIABLE_ERROR){
 				free(word_buffer);
 				return;
+			}
+		} else if(input[i] == '#'){
+			i++;
+
+			// Ignore characters up to next pound sign
+			while(input[i] != '#'){
+				i++;
 			}
 		} else {
 			// We have a normal character so just add it to the word_buffer
@@ -128,6 +138,26 @@ int sc_process_proc(ScStack* stack_ptr, char* input, int i){
 	char modifier = input[i];
 	if(modifier == ':' || modifier == '?'){
 		// If valid modifier, start proc from next char
+		i++;
+	}
+
+	// Load function name if dollarsign, only used if funcname
+	char* func_name = (char*)malloc(MAX_WORD_LENGTH * sizeof(char));
+	clear_char_buffer(func_name, MAX_WORD_LENGTH);
+
+	if(modifier == '$'){
+		// Discard leading $
+		i++;
+		int fc = 0;
+
+		// Get the function name
+		while(input[i] != '$'){
+			func_name[fc] = input[i];
+			i++;
+			fc++;
+		}
+
+		// Discard final $
 		i++;
 	}
 
@@ -192,6 +222,12 @@ int sc_process_proc(ScStack* stack_ptr, char* input, int i){
 			if(condition){
 				sc_interprete(proc_buffer);
 			}
+		} else if(modifier == '$'){
+			// Make function uppercase
+			string_to_upper(func_name);
+
+			// Store the function in the USERDEF_FUNCTION_TABLE
+			sc_hashmap_store(&USERDEF_FUNCTION_TABLE, func_name, proc_buffer, MAKE_STRING_COPIES, OVERWRITE);
 		} else {
 			// interprete the proc as usual
 			sc_interprete(proc_buffer);
@@ -202,6 +238,7 @@ int sc_process_proc(ScStack* stack_ptr, char* input, int i){
 	}
 
 	free(proc_buffer);
+	free(func_name);
 	// Return the new index
 	return i;
 }
@@ -247,7 +284,7 @@ int sc_store_variable(ScStack* stack_ptr, char* input, int i){
 		// a reserved word is used
 
 		// Store value in variable table
-		sc_hashmap_store(&VARIABLE_TABLE, var_name_buffer, value_as_string, MAKE_STRING_COPIES);
+		sc_hashmap_store(&VARIABLE_TABLE, var_name_buffer, value_as_string, MAKE_STRING_COPIES, OVERWRITE);
 		
 		// Free value as string buffer
 		free(value_as_string);
@@ -276,8 +313,20 @@ void sc_call_func(ScStack* stack_ptr, char* word){
 			NodeH* var_node = sc_hashmap_lookup(&VARIABLE_TABLE, word, HIDE_LOOKUP_ERRORS);
 
 			if(var_node == NULL) {
-				// Unknown word
-				fprintf(stderr, "Unknown word: '%s'!\n", word);
+
+				// Lookup the word in the USERDEF_FUNCTION_TABLE	// Look up the word in the variable table
+				NodeH* user_def_func_node = sc_hashmap_lookup(&USERDEF_FUNCTION_TABLE, word, HIDE_LOOKUP_ERRORS);
+
+				if(user_def_func_node == NULL){
+					// Unknown word
+					fprintf(stderr, "Unknown word: '%s'!\n", word);
+					return;
+				} else {
+					// Fetch the proc & interprete it
+					char* proc_to_call = user_def_func_node->value;
+					sc_interprete(proc_to_call);
+				}
+
 			} else {
 				// Fetch the value from node
 				char* value = var_node->value;
@@ -303,7 +352,7 @@ void sc_define_function(char* func_name, void (*func_ptr)()){
 	char* func_address = (char*) func_ptr;
 
 	// Store address in function table
-	sc_hashmap_store(&FUNCTION_TABLE, func_name, func_address, NO_STRING_COPIES);
+	sc_hashmap_store(&FUNCTION_TABLE, func_name, func_address, NO_STRING_COPIES, NO_OVERWRITE);
 }
 
 // Require a certain number of arguments on the stack
