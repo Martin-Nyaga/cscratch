@@ -12,11 +12,10 @@
 #include "core/scratch.h"
 
 int main(int argc, char** argv){
-	// Initialize with a stack size of 256 integers
-	// => 1024 bytes => 1kb
-	sc_init(256);
+	// Initialize with a stack size of 1024 integers
+	sc_init(1024);
 
-	printf("CScratch 0.0.0.1\n");
+	printf("CScratch 0.0.2\n");
 	printf("Press Ctrl+C to exit\n\n");
 
 	while(1){

@@ -1,46 +1,71 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <math.h>
-
-#include "stack.h"
-#include "hashmap.h"
 #include "scratch.h"
-
-#include "std/scstdlib.h"
-
-// No individual word is longer than 10 chars,
-// which is the longest size of an unsigned int,
-// so we can allocate a buffer of 10 chars
-#define MAX_WORD_LENGTH 20
-
-// Max length for a procedure. Can allow fairly long
-// Procs: 256 chars
-#define MAX_PROC_LENGTH 256
-
-// Error when parsing a proc
-#define PROC_ERROR 8989
-
-// Error when storing a variable
-#define VARIABLE_ERROR 89898
-
 
 void sc_init(int stack_size){
 	// Initialize the program stack
 	sc_stack_init(&PROG_STACK, stack_size);
 
 	// Initialize the function table
-	sc_hashmap_init(&FUNCTION_TABLE, 1000);
+	sc_hashmap_init(&FUNCTION_TABLE, 100);
 
 	// Initialize variable table
-	sc_hashmap_init(&VARIABLE_TABLE, 1000);
+	sc_hashmap_init(&VARIABLE_TABLE, 100);
 
 	// Initialize variable table
-	sc_hashmap_init(&USERDEF_FUNCTION_TABLE, 1000);
+	sc_hashmap_init(&U_DEF_FUNCTION_TABLE, 100);
 
 	// Load standard library into function table
 	sc_load_std_lib();
+}
+
+// Load a file from a filename
+// Into a string.
+// Useful for file interpretion
+// and loading standard functions
+// Users are responsible for freeing result
+char* sc_load_file(char* filename){
+	// Open File
+	FILE* file_ptr = fopen(filename, "r");
+
+	// Return null if file loading fails
+	if(file_ptr == (FILE*) NULL){
+		fprintf(stderr, "File not found.\n");
+		return NULL;
+	}
+
+	// Seek to the end of the file
+	// and get file size as pointer position
+  fseek(file_ptr, 0, SEEK_END);
+  long file_size = ftell(file_ptr);
+
+	// Go back to the beginning of file
+  rewind(file_ptr);
+
+	// Allocate memory for the file
+	// plus null terminator at the end
+	char* input = (char*) malloc((file_size + 1) * sizeof(char));
+
+	// Counter for file
+	int i = 0;
+	char c;
+
+	// Read file into memory character by character
+	while((c = fgetc(file_ptr))){
+		if(c == EOF)
+			break;
+
+		// read char into memory
+		input[i] = c;
+		i++;
+	}
+
+	// Put Null terminator Char at the end of the string
+	input[i++] = '\0';
+
+	// We have entire file in memory, so we can close it now
+	fclose(file_ptr);
+
+	// Return input string
+	return input;
 }
 
 // Take a stack, and an input & Interprete the result
@@ -89,12 +114,36 @@ void sc_interprete(char* input){
 				return;
 			}
 		} else if(input[i] == '#'){
+			// Comments
 			i++;
 
 			// Ignore characters up to next pound sign
 			while(input[i] != '#'){
 				i++;
 			}
+
+			// Skip last comment character
+			i++;
+		} else if(input[i] == '"'){
+			// String
+			i++;
+
+			char* string_buffer = (char*) malloc(MAX_WORD_LENGTH * sizeof(char));
+			clear_char_buffer(string_buffer, MAX_WORD_LENGTH);
+			int sc = 0;
+			
+			while(input[i] != '"'){
+				string_buffer[sc] = input[i];
+				i++;
+				sc++;
+			}
+			
+			// Load string & clear word buffer
+			sc_put_string(stack_ptr, string_buffer);
+			free(string_buffer);
+
+			// Skip last quote
+			i++;
 		} else {
 			// We have a normal character so just add it to the word_buffer
 			word_complete = 0;
@@ -141,7 +190,8 @@ int sc_process_proc(ScStack* stack_ptr, char* input, int i){
 		i++;
 	}
 
-	// Load function name if dollarsign, only used if funcname
+	// function name buffer to load function name
+	// if dollarsign
 	char* func_name = (char*)malloc(MAX_WORD_LENGTH * sizeof(char));
 	clear_char_buffer(func_name, MAX_WORD_LENGTH);
 
@@ -226,8 +276,8 @@ int sc_process_proc(ScStack* stack_ptr, char* input, int i){
 			// Make function uppercase
 			string_to_upper(func_name);
 
-			// Store the function in the USERDEF_FUNCTION_TABLE
-			sc_hashmap_store(&USERDEF_FUNCTION_TABLE, func_name, proc_buffer, MAKE_STRING_COPIES, OVERWRITE);
+			// Store the function in the U_DEF_FUNCTION_TABLE
+			sc_hashmap_store(&U_DEF_FUNCTION_TABLE, func_name, proc_buffer, MAKE_STRING_COPIES, OVERWRITE);
 		} else {
 			// interprete the proc as usual
 			sc_interprete(proc_buffer);
@@ -260,9 +310,14 @@ int sc_store_variable(ScStack* stack_ptr, char* input, int i){
 	int vc = 0;
 
 	// Collect chars up to space or null terminator
-	while(!isspace(input[i]) && input[i] != '\0'){
-		// TODO: Blow up with VARIABLE_ERROR if 
-		// a special character is used
+	// Or bracket in case of function syntax
+	while(!isspace(input[i]) && input[i] != ')' && input[i] != '\0'){
+
+		if(is_special(input[i])){
+			fprintf(stderr, "Special character '%c' not allowed in variable name!\n", input[i]);
+			free(var_name_buffer);
+			return VARIABLE_ERROR;
+		}
 
 		var_name_buffer[vc] = input[i];
 		i++;
@@ -271,7 +326,7 @@ int sc_store_variable(ScStack* stack_ptr, char* input, int i){
 
 	// If valid name, store variable
 	if(strlen(var_name_buffer)){
-		unsigned int value = sc_stack_pop(stack_ptr);
+		int value = sc_stack_pop(stack_ptr);
 		
 		// Cast value to string
 		char* value_as_string = (char*) malloc(MAX_WORD_LENGTH * sizeof(char));
@@ -302,48 +357,58 @@ void sc_call_func(ScStack* stack_ptr, char* word){
 
 	// Check if string is number to add it to the stack
 	if(string_is_number(word)){
-		sc_stack_push(stack_ptr, (unsigned int) atoi(word));
+		sc_stack_push(stack_ptr, (int) atoi(word));
 	} else {
 		// Lookup the function in the function table
 		NodeH* func_node = sc_hashmap_lookup(&FUNCTION_TABLE, word, HIDE_LOOKUP_ERRORS);
-
-		// If the function is not found
-		if(func_node == NULL){
-			// Look up the word in the variable table
-			NodeH* var_node = sc_hashmap_lookup(&VARIABLE_TABLE, word, HIDE_LOOKUP_ERRORS);
-
-			if(var_node == NULL) {
-
-				// Lookup the word in the USERDEF_FUNCTION_TABLE	// Look up the word in the variable table
-				NodeH* user_def_func_node = sc_hashmap_lookup(&USERDEF_FUNCTION_TABLE, word, HIDE_LOOKUP_ERRORS);
-
-				if(user_def_func_node == NULL){
-					// Unknown word
-					fprintf(stderr, "Unknown word: '%s'!\n", word);
-					return;
-				} else {
-					// Fetch the proc & interprete it
-					char* proc_to_call = user_def_func_node->value;
-					sc_interprete(proc_to_call);
-				}
-
-			} else {
-				// Fetch the value from node
-				char* value = var_node->value;
-
-				// Cast to uint and push to stack
-				sc_stack_push(stack_ptr, (unsigned int) atoi(value));
-			}
-
-		} else {
-
-			// Cast the function address into a function pointer
-			void (*func_to_call)() = (void (*)()) func_node->value;
-
-			// Call the function with stack as argument
-			(*func_to_call)(stack_ptr);
+		if(func_node != NULL){
+			sc_call_builtin_func(stack_ptr, func_node);
+			return;
 		}
+
+		// Lookup the word in the U_DEF_FUNCTION_TABLE
+		NodeH* u_def_func_node = sc_hashmap_lookup(&U_DEF_FUNCTION_TABLE, word, HIDE_LOOKUP_ERRORS);
+		if(u_def_func_node != NULL){
+			sc_call_u_def_func(u_def_func_node);
+			return;
+		}
+
+		// Look up the word in the variable table
+		NodeH* var_node = sc_hashmap_lookup(&VARIABLE_TABLE, word, HIDE_LOOKUP_ERRORS);
+		if(var_node != NULL) {
+			sc_get_variable(stack_ptr, var_node);
+			return;
+		}
+
+		// Unknown word
+		fprintf(stderr, "Unknown word: '%s'!\n", word);
+		return;
 	}
+}
+
+// Call a builtin function
+void sc_call_builtin_func(ScStack* stack_ptr, NodeH* func_node){
+	// Cast the function address into a function pointer
+	void (*func_to_call)() = (void (*)()) func_node->value;
+
+	// Call the function with stack as argument
+	(*func_to_call)(stack_ptr);
+}
+
+// Get variable from variable table
+void sc_get_variable(ScStack* stack_ptr, NodeH* var_node){
+	// Fetch the variable value from node
+	char* value = var_node->value;
+
+	// Cast to uint and push to stack
+	sc_stack_push(stack_ptr, (int) atoi(value));
+}
+
+// Call a user defined function
+void sc_call_u_def_func(NodeH* u_def_func_node){
+	// Fetch the proc & interprete it
+	char* proc_to_call = u_def_func_node->value;
+	sc_interprete(proc_to_call);
 }
 
 // Define a function in the function table given its name & function address
@@ -368,6 +433,24 @@ int sc_require_arity(ScStack* stack_ptr, int args_num){
 
 // Helper Functions
 // -------------
+
+// Check if c is a special character
+// 1 if true, 0 if false
+int is_special(char c){
+	char special_chars[] = { '{', '}', '/', '$', '#', ')', '+', '-' };
+	int len = strlen(special_chars);
+
+	int i;
+
+	for(i = 0; i < len; i++){
+		if(c == special_chars[i]){
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 void clear_char_buffer(char* buffer, int len){
 	int i;
 
@@ -381,6 +464,9 @@ int string_is_number(char* str){
 	int i;
 
 	for(i = 0; i < len; i++){
+		if(i == 0 && str[i] == '-'){
+			continue;
+		}
 		if(!isdigit(str[i])){
 			return 0;
 		}

@@ -6,9 +6,9 @@
 // Initialize the stack
 void sc_stack_init(ScStack* stack_ptr, int max_size){
 	// Allocate new block of memory for the stack
-	// Allow stack to only store Unsigned ints.
+	// Allow stack to only store ints.
 	// See sc_interprete in scratch.c
-	unsigned int* new_contents_ptr = (unsigned int*) malloc(max_size * sizeof(unsigned int));
+	int* new_contents_ptr = (int*) malloc(max_size * sizeof(int));
 
 	// Init stack with Empty Contents
 	stack_ptr->contents = new_contents_ptr;
@@ -29,7 +29,7 @@ int sc_stack_is_full(ScStack* stack_ptr){
 }
 
 // Push a number to the top of the stack
-void sc_stack_push(ScStack* stack_ptr, unsigned int value){
+void sc_stack_push(ScStack* stack_ptr, int value){
 	if (!sc_stack_is_full(stack_ptr)){
 		stack_ptr->top++;
 		stack_ptr->contents[stack_ptr->top] = value;
@@ -41,9 +41,9 @@ void sc_stack_push(ScStack* stack_ptr, unsigned int value){
 
 // Pop top of stack off
 // Error if stack is empty
-unsigned int sc_stack_pop(ScStack* stack_ptr){
+int sc_stack_pop(ScStack* stack_ptr){
 	if(!sc_stack_is_empty(stack_ptr)){
-		unsigned int top = stack_ptr->contents[stack_ptr->top];
+		int top = stack_ptr->contents[stack_ptr->top];
 		
 		// Decrement stack_top so that next push will
 		// Overwrite memory

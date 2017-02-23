@@ -91,6 +91,8 @@ int sc_hash_key(ScHashmap* hashmap, char* str){
 		total += digit;
 	}
 
+	// Mod the table size
+	total = total % hashmap->max_size;
 	return total;
 }
 
