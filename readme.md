@@ -104,6 +104,7 @@ cscratch> 20 5 div 3 add print
 7
 ```
 
+### TODO
 - Full explanation of basic concepts
 
 - Repl
